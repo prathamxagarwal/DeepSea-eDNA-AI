@@ -1,11 +1,4 @@
-# Python virtual environment
+.venv/
 venv/
-
-# Python cache
 __pycache__/
 *.pyc
-
-# Data and models
-data/
-models/
-results/
