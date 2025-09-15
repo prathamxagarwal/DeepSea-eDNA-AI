@@ -1,24 +1,22 @@
-# ecology/alpha_diversity.py
 import pandas as pd
 import numpy as np
 from scipy.stats import entropy
-import os
 
-# Input: abundance/relative_by_genus.csv  (rows=genus, cols=k-mers) OR rows=samples
-infile = "abundance/relative_by_genus.csv"
-out = "ecology/alpha_diversity_by_genus.csv"
+# Example abundance data
+data = {
+    "Species_A": [10, 5, 0],
+    "Species_B": [0, 8, 2],
+    "Species_C": [3, 1, 6]
+}
 
-df = pd.read_csv(infile, index_col=0)  # index = genus
-# Compute Shannon (entropy) across columns for each genus row (if you want per sample, swap orientation)
-# Here compute diversity across k-mers per genus (example). Adapt if you want per sample.
-div = []
-for idx, row in df.iterrows():
-    vals = row.values
-    shannon = entropy(vals)  # natural log
-    # Simpson: 1 - sum(p^2)
-    simpson = 1 - np.sum(vals**2)
-    div.append([idx, shannon, simpson])
+df = pd.DataFrame(data, index=["Sample_1", "Sample_2", "Sample_3"])
 
-outdf = pd.DataFrame(div, columns=["genus","shannon","simpson"])
-outdf.to_csv(out, index=False)
-print("Saved:", out)
+for sample, row in df.iterrows():
+    counts = row.values.astype(float)  # convert to float
+    total = counts.sum()
+    if total > 0:
+        freqs = counts / total  # normalize to probabilities
+        diversity = entropy(freqs, base=2)  # Shannon index
+        print(f"{sample}: Shannon diversity = {diversity:.4f}")
+    else:
+        print(f"{sample}: No species observed")

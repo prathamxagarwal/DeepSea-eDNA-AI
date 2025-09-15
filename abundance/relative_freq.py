@@ -1,27 +1,32 @@
-# abundance/relative_freq.py
 import pandas as pd
-import os
+from collections import Counter
 
-kmer_csv = "data/processed/kmer_dataset.csv"
-tax_csv = "taxonomy/parsed_with_taxonomy.csv"  # optional
-out_rel = "abundance/relative_kmer_freq.csv"
-out_tax = "abundance/relative_by_genus.csv"
+# Input taxonomy file
+input_csv = "taxonomy/taxonomy_table.csv"
+output_csv = "abundance/relative_abundance.csv"
 
-df = pd.read_csv(kmer_csv)   # each row = sequence id + kmer counts, assume 'id' or 'sequence_id' column
-id_col = "id" if "id" in df.columns else ("sequence_id" if "sequence_id" in df.columns else df.columns[0])
-kmer_cols = [c for c in df.columns if c!=id_col]
+df = pd.read_csv(input_csv)
 
-# compute relative freq per sequence
-df_rel = df.copy()
-df_rel[kmer_cols] = df_rel[kmer_cols].div(df_rel[kmer_cols].sum(axis=1), axis=0).fillna(0)
-df_rel.to_csv(out_rel, index=False)
-print("Saved", out_rel)
+k = 4  # k-mer size
+abundance = []
 
-# if taxonomy present, aggregate relative frequency by genus
-if os.path.exists(tax_csv):
-    tax = pd.read_csv(tax_csv)[["sequence_id","genus"]]
-    merged = df.merge(tax, left_on=id_col, right_on="sequence_id", how="left")
-    agg = merged.groupby("genus")[kmer_cols].sum()
-    agg_rel = agg.div(agg.sum(axis=1), axis=0).fillna(0)
-    agg_rel.to_csv(out_tax)
-    print("Saved aggregated genus relative freq:", out_tax)
+for _, row in df.iterrows():
+    seq_id = row["id"]
+    seq = row["sequence"]
+
+    # Count kmers
+    kmers = [seq[i:i+k] for i in range(len(seq)-k+1)]
+    counts = Counter(kmers)
+
+    total = sum(counts.values())
+    rel_freq = {kmer: v/total for kmer, v in counts.items()}
+
+    rel_freq["id"] = seq_id
+    rel_freq["Genus"] = row["Genus"]   # Keep virus genus info
+    abundance.append(rel_freq)
+
+# Save table
+abundance_df = pd.DataFrame(abundance).fillna(0)
+abundance_df.to_csv(output_csv, index=False)
+print(f"✅ Relative abundance saved to {output_csv}")
+

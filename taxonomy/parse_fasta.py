@@ -1,22 +1,32 @@
-# taxonomy/parse_fasta.py
 from Bio import SeqIO
-import os
-import csv
+import pandas as pd
 
-raw = "data/processed"   # cleaned FASTA files live here
-out_csv = "taxonomy/parsed_sequences.csv"
+# Input FASTA and output CSV
+input_fasta = "data/raw/betacoronavirus.fasta"
+output_csv = "taxonomy/taxonomy_table.csv"
 
-rows = []
-for fn in os.listdir(raw):
-    if fn.startswith("cleaned_") and fn.endswith((".fasta",".fa",".fna")):
-        path = os.path.join(raw, fn)
-        for rec in SeqIO.parse(path, "fasta"):
-            rows.append([rec.id, rec.description, str(rec.seq), len(rec.seq)])
+# Prepare storage
+records = []
+for record in SeqIO.parse(input_fasta, "fasta"):
+    seq_id = record.id
+    seq = str(record.seq)
 
-os.makedirs("taxonomy", exist_ok=True)
-with open(out_csv, "w", newline="") as f:
-    writer = csv.writer(f)
-    writer.writerow(["sequence_id","header","sequence","length"])
-    writer.writerows(rows)
+    # Pseudotaxonomy for virus dataset
+    taxonomy = {
+        "Kingdom": "Virus",
+        "Phylum": "Riboviria",         # RNA viruses
+        "Class": "Nidovirales",        # order of coronaviruses
+        "Order": "Nidovirales",
+        "Family": "Coronaviridae",
+        "Genus": "Betacoronavirus",
+        "Species": "Unknown"
+    }
 
-print("Wrote:", out_csv, "rows:", len(rows))
+    taxonomy["id"] = seq_id
+    taxonomy["sequence"] = seq
+    records.append(taxonomy)
+
+# Save as CSV
+df = pd.DataFrame(records)
+df.to_csv(output_csv, index=False)
+print(f"✅ Taxonomy table saved to {output_csv}")
